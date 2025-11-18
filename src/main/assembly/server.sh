@@ -9,6 +9,9 @@ CONF_DIR="$APP_DIR/conf"
 LIB_DIR="$APP_DIR/../lib"
 LOG_FILE="$APP_DIR/error.log"
 
+# 预初始化可用的 JAR 文件名（用于显示），若不存在则保持为空
+JAR_FILE=$(ls "$APP_DIR"/*.jar 2>/dev/null | head -n 1)
+
 # JVM 参数
 
 JAVA_OPTS="-Dname=$APP_NAME -Xmx4g -XX:+UseG1GC -XX:+UseStringDeduplication
@@ -65,20 +68,20 @@ done
 # ====================== 主函数 ==========================
 
 start() {
-checkpid
-if [ $psid -ne 0 ]; then
-echo "================================"
-echo "warn: $JAR_FILE already started! (pid=$psid)"
-echo "================================"
-else
-mkdir_tmp
-JAR_FILE=$(get_jar)
-echo -n "Starting $JAR_FILE ..."
-nohup java $JAVA_OPTS -jar "$JAR_FILE" $SPRING_OPTS $params >"$APP_DIR/nohup.out" 2>"$LOG_FILE" &
-sleep 1
-checkpid
-if [ $psid -ne 0 ]; then
-echo "(pid=$psid) [OK]"
+    checkpid
+    if [ $psid -ne 0 ]; then
+        echo "================================"
+        echo "warn: ${JAR_FILE:-$APP_NAME} already started! (pid=$psid)"
+        echo "================================"
+    else
+        mkdir_tmp
+        JAR_FILE=$(get_jar)
+        echo -n "Starting ${JAR_FILE:-$APP_NAME} ..."
+        nohup java $JAVA_OPTS -jar "$JAR_FILE" $SPRING_OPTS $params >"$APP_DIR/nohup.out" 2>"$LOG_FILE" &
+        sleep 1
+        checkpid
+        if [ $psid -ne 0 ]; then
+            echo "(pid=$psid) [OK]"
 else
 echo "[Failed]"
 fi
@@ -86,22 +89,22 @@ fi
 }
 
 stop() {
-checkpid
-if [ $psid -ne 0 ]; then
-kill -9 $psid
-if [ $? -eq 0 ]; then
-num=0
-spins='|/-\'
-while [ $psid -ne 0 ]; do
-index=$(( num % 4 ))
-spin=$(echo "$spins" | cut -c $((index + 1)))
-printf "\r  Stopping %s ...(pid=%s) [OK, waiting] %s" "$JAR_FILE" "$psid" "$spin"
-num=$((num + 1))
-sleep 0.1
-checkpid
-done
-echo ""
-echo "[Shutdown finished]"
+    checkpid
+    if [ $psid -ne 0 ]; then
+        kill -9 $psid
+        if [ $? -eq 0 ]; then
+            num=0
+            spins='|/-\'
+            while [ $psid -ne 0 ]; do
+                index=$(( num % 4 ))
+                spin=$(echo "$spins" | cut -c $((index + 1)))
+                printf "\r  Stopping %s ...(pid=%s) [OK, waiting] %s" "${JAR_FILE:-$APP_NAME}" "$psid" "$spin"
+                num=$((num + 1))
+                sleep 0.1
+                checkpid
+            done
+            echo ""
+            echo "[Shutdown finished]"
 else
 echo "[Failed]"
 fi
@@ -111,29 +114,29 @@ fi
 }
 
 stopImmediate() {
-checkpid
-if [ $psid -ne 0 ]; then
-echo -n "Stopping $JAR_FILE ...(pid=$psid) "
-kill -9 $psid
-if [ $? -eq 0 ]; then
-echo "[OK]"
-else
-echo "[Failed]"
-fi
-checkpid
-echo "[Shutdown finished]"
-else
-echo "warn: Application is not running"
-fi
+    checkpid
+    if [ $psid -ne 0 ]; then
+        echo -n "Stopping ${JAR_FILE:-$APP_NAME} ...(pid=$psid) "
+        kill -9 $psid
+        if [ $? -eq 0 ]; then
+            echo "[OK]"
+        else
+            echo "[Failed]"
+        fi
+        checkpid
+        echo "[Shutdown finished]"
+    else
+        echo "warn: Application is not running"
+    fi
 }
 
 status() {
-checkpid
-if [ $psid -ne 0 ]; then
-echo "$JAR_FILE is running! (pid=$psid)"
-else
-echo "$JAR_FILE is not running"
-fi
+    checkpid
+    if [ $psid -ne 0 ]; then
+        echo "${JAR_FILE:-$APP_NAME} is running! (pid=$psid)"
+    else
+        echo "${JAR_FILE:-$APP_NAME} is not running"
+    fi
 }
 
 info() {
