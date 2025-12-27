@@ -77,7 +77,7 @@ start() {
         mkdir_tmp
         JAR_FILE=$(get_jar)
         echo -n "Starting ${JAR_FILE:-$APP_NAME} ..."
-        nohup java $JAVA_OPTS -jar "$JAR_FILE" $SPRING_OPTS $params >"$APP_DIR/nohup.out" 2>"$LOG_FILE" &
+        nohup java $JAVA_OPTS -jar "$JAR_FILE" $SPRING_OPTS $params >/dev/null 2>&1 &
         sleep 1
         checkpid
         if [ $psid -ne 0 ]; then
